@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     DATABASE_URL: str
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def _force_asyncpg_driver(cls, value: str) -> str:
+        if value.startswith("postgres://"):
+            return "postgresql+asyncpg://" + value[len("postgres://"):]
+        if value.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + value[len("postgresql://"):]
+        return value
+
     ADMIN_ID_1: int | None = None
     ADMIN_ID_2: int | None = None
     ADMIN_ID_3: int | None = None

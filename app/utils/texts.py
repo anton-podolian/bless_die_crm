@@ -8,7 +8,7 @@ NEW_ORDER_SIZE = "🖤 Размер\n\nВыбери размер или укаж
 NEW_ORDER_SIZE_CUSTOM = "🖤 Напиши размер вручную"
 NEW_ORDER_BUY_PRICE = "🖤 Цена закупки\n\nОтправь число, например: 120"
 NEW_ORDER_SELL_PRICE = "🖤 Цена продажи\n\nОтправь число, например: 220"
-NEW_ORDER_CUSTOMER = "🖤 Покупатель\n\nИмя или Instagram, например: @username или Anna"
+NEW_ORDER_CUSTOMER = "🖤 Покупатель\n\nИмя или Instagram, например: @username или Margosha"
 NEW_ORDER_COMMENT = "🖤 Комментарий\n\nМожно добавить заметку или пропустить"
 
 ORDER_SAVED = "🖤 Заказ сохранён"

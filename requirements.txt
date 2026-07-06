@@ -17,13 +17,10 @@ idna==3.18
 magic-filter==1.0.12
 multidict==6.7.1
 propcache==0.5.2
+psycopg2-binary
 pydantic-settings==2.6.1
-<<<<<<< HEAD
 pydantic==2.9.2
 pydantic_core==2.23.4
 python-dotenv==1.0.1
 typing_extensions==4.16.0
 yarl==1.24.2
-=======
-psycopg2-binary
->>>>>>> 47d42f08af95f121e09fd008d2c9196114dffc95

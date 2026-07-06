@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bless_die
+      POSTGRES_PASSWORD: bless_die
+      POSTGRES_DB: bless_die_crm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bless_die -d bless_die_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bless_die:bless_die@db:5432/bless_die_crm
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

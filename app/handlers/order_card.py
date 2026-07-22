@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
@@ -21,6 +22,22 @@ router = Router(name="order_card")
 ORDER_NOT_FOUND = "🖤 Заказ не найден. Возможно, он был удалён"
 
 
+async def _delete_message_if_possible(callback: CallbackQuery) -> bool:
+    """Delete the source message, or at least disable its stale keyboard."""
+    try:
+        await callback.message.delete()
+        return True
+    except TelegramBadRequest as error:
+        if "message can't be deleted" not in error.message.lower():
+            raise
+
+        try:
+            await callback.message.edit_reply_markup(reply_markup=None)
+        except TelegramBadRequest:
+            pass
+        return False
+
+
 async def _render_card(callback: CallbackQuery, order) -> None:
     text = order_card_text(order)
     kb = order_card_kb(order.id, order.status)
@@ -31,11 +48,11 @@ async def _render_card(callback: CallbackQuery, order) -> None:
         if has_photo_message:
             await callback.message.edit_caption(caption=text, reply_markup=kb)
         else:
-            await callback.message.delete()
+            await _delete_message_if_possible(callback)
             await callback.message.answer_photo(order.photo_file_id, caption=text, reply_markup=kb)
     else:
         if has_photo_message:
-            await callback.message.delete()
+            await _delete_message_if_possible(callback)
             await callback.message.answer(text, reply_markup=kb)
         else:
             await callback.message.edit_text(text, reply_markup=kb)

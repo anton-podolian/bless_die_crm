@@ -95,6 +95,7 @@ def edit_menu_kb(order_id: int) -> InlineKeyboardMarkup:
         ("💵 Продажа", "sell_price"),
         ("👤 Покупатель", "customer"),
         ("📝 Комментарий", "comment"),
+        ("🗓 Дата оформления", "created_at"),
     ]
     rows = [
         [InlineKeyboardButton(text=label, callback_data=EditField(order_id=order_id, field=field).pack())]

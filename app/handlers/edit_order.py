@@ -10,8 +10,8 @@ from app.keyboards.order_keyboards import order_card_kb
 from app.services.order_service import OrderService
 from app.states.order_states import EditOrderStates
 from app.utils.formatting import order_card_text
-from app.utils.texts import EMPTY_SIZE, EMPTY_TITLE, INVALID_PRICE, ORDER_UPDATED
-from app.utils.validators import is_non_empty, parse_price
+from app.utils.texts import EMPTY_SIZE, EMPTY_TITLE, INVALID_ORDER_DATE, INVALID_PRICE, ORDER_UPDATED
+from app.utils.validators import is_non_empty, parse_kyiv_datetime, parse_price
 
 router = Router(name="edit_order")
 
@@ -25,6 +25,7 @@ FIELD_STATE = {
     "sell_price": EditOrderStates.waiting_sell_price,
     "customer": EditOrderStates.waiting_customer,
     "comment": EditOrderStates.waiting_comment,
+    "created_at": EditOrderStates.waiting_created_at,
 }
 
 FIELD_PROMPT = {
@@ -35,6 +36,10 @@ FIELD_PROMPT = {
     "sell_price": "🖤 Введи новую цену продажи",
     "customer": "🖤 Введи нового покупателя (имя или Instagram)",
     "comment": "🖤 Введи новый комментарий",
+    "created_at": (
+        "🖤 Введи дату оформления по Киеву\n\n"
+        "Например: 25.07.2026 или 25.07.2026 14:30"
+    ),
 }
 
 
@@ -131,3 +136,15 @@ async def edit_customer(message: Message, state: FSMContext, order_service: Orde
 async def edit_comment(message: Message, state: FSMContext, order_service: OrderService) -> None:
     data = await state.get_data()
     await _finish_edit(message, state, order_service, data["order_id"], "comment", (message.text or "").strip() or None)
+
+
+@router.message(EditOrderStates.waiting_created_at)
+async def edit_created_at(message: Message, state: FSMContext, order_service: OrderService) -> None:
+    created_at = parse_kyiv_datetime(message.text or "")
+    if created_at is None:
+        await message.answer(INVALID_ORDER_DATE, reply_markup=cancel_kb())
+        return
+    data = await state.get_data()
+    await _finish_edit(
+        message, state, order_service, data["order_id"], "created_at", created_at
+    )

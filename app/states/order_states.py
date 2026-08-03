@@ -21,6 +21,7 @@ class EditOrderStates(StatesGroup):
     waiting_sell_price = State()
     waiting_customer = State()
     waiting_comment = State()
+    waiting_created_at = State()
 
 
 class SearchStates(StatesGroup):

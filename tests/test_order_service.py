@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from app.models.order import OrderStatus
 from app.services.order_service import OrderService
 from app.utils.formatting import fmt_datetime
+from app.utils.validators import parse_kyiv_datetime
 
 
 class FakeRepository:
@@ -79,3 +80,13 @@ def test_month_boundaries_follow_kyiv_timezone_and_dst():
 def test_order_time_is_rendered_in_kyiv():
     assert fmt_datetime(datetime(2026, 1, 15, 10, 30, tzinfo=UTC)) == "15.01.2026 12:30"
     assert fmt_datetime(datetime(2026, 7, 15, 10, 30, tzinfo=UTC)) == "15.07.2026 13:30"
+
+
+def test_manual_order_date_is_parsed_as_kyiv_time():
+    assert parse_kyiv_datetime("15.07.2026 14:30") == datetime(
+        2026, 7, 15, 11, 30, tzinfo=UTC
+    )
+    assert parse_kyiv_datetime("15.01.2026 14:30") == datetime(
+        2026, 1, 15, 12, 30, tzinfo=UTC
+    )
+    assert parse_kyiv_datetime("31.02.2026") is None

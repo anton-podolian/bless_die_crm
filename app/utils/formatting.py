@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import UTC
+from zoneinfo import ZoneInfo
+
 from app.models.order import Order, OrderStatus
 from app.repositories.order_repository import OrderStats
 
@@ -19,7 +22,9 @@ def fmt_money(value: float) -> str:
 def fmt_datetime(dt) -> str:
     if dt is None:
         return "—"
-    return dt.strftime("%d.%m.%Y %H:%M")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(ZoneInfo("Europe/Kyiv")).strftime("%d.%m.%Y %H:%M")
 
 
 def profit_emoji(profit: float) -> str:
@@ -48,7 +53,7 @@ def order_card_text(order: Order) -> str:
     lines.append("")
     lines.append(f"Статус: {STATUS_TEXT[order.status]}")
     lines.append("")
-    lines.append(f"🗓 Создан: {fmt_datetime(order.created_at)}")
+    lines.append(f"🗓 Оформлен (Киев): {fmt_datetime(order.created_at)}")
 
     if order.closed_at:
         lines.append(f"✅ Продан: {fmt_datetime(order.closed_at)}")
@@ -67,9 +72,9 @@ def order_list_header(status_label: str, sort_label: str, total: int) -> str:
     )
 
 
-def stats_text(stats: OrderStats) -> str:
+def stats_text(stats: OrderStats, period: str | None = None) -> str:
     return (
-        "📊 Статистика\n\n"
+        "📊 Статистика" + (f" — {period}" if period else "") + "\n\n"
         f"🧾 Всего заказов: {stats.total_count}\n"
         f"🟡 В работе: {stats.in_progress_count}\n"
         f"🟢 Продано: {stats.sold_count}\n\n"

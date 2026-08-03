@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.keyboards.callback_data import EditField, ListNav, OrderAction, SimpleAction, SizeSelect
 from app.models.order import OrderStatus
 from app.repositories.order_repository import PAGE_SIZE, SortOption, StatusFilter
+from app.utils.formatting import fmt_datetime
 
 SIZES = ["XS", "S", "M", "L", "XL"]
 
@@ -116,10 +117,11 @@ def orders_list_kb(
 
     for order in orders:
         emoji = "🟢" if order.status == OrderStatus.SOLD else "🟡"
+        short_title = order.title if len(order.title) <= 24 else f"{order.title[:23]}…"
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"{emoji} #{order.id} {order.title}",
+                    text=f"{emoji} #{order.id} {short_title} · {fmt_datetime(order.created_at)}",
                     callback_data=OrderAction(action="view", order_id=order.id).pack(),
                 )
             ]
@@ -177,10 +179,11 @@ def search_results_kb(orders: list, total: int, page: int, query: str) -> Inline
     rows = []
     for order in orders:
         emoji = "🟢" if order.status == OrderStatus.SOLD else "🟡"
+        short_title = order.title if len(order.title) <= 24 else f"{order.title[:23]}…"
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"{emoji} #{order.id} {order.title}",
+                    text=f"{emoji} #{order.id} {short_title} · {fmt_datetime(order.created_at)}",
                     callback_data=OrderAction(action="view", order_id=order.id).pack(),
                 )
             ]

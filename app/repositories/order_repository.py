@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import Select, func, or_, select
@@ -123,26 +124,40 @@ class OrderRepository:
         return orders, total
 
     async def get_stats(self) -> OrderStats:
-        total_count = (await self.session.execute(select(func.count(Order.id)))).scalar_one()
+        return await self.get_stats_for_period()
+
+    async def get_stats_for_period(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> OrderStats:
+        conditions = []
+        if start is not None:
+            conditions.append(Order.created_at >= start)
+        if end is not None:
+            conditions.append(Order.created_at < end)
+
+        def filtered(stmt):
+            return stmt.where(*conditions) if conditions else stmt
+
+        total_count = (await self.session.execute(filtered(select(func.count(Order.id))))).scalar_one()
         in_progress_count = (
             await self.session.execute(
-                select(func.count(Order.id)).where(Order.status == OrderStatus.IN_PROGRESS)
+                filtered(select(func.count(Order.id))).where(Order.status == OrderStatus.IN_PROGRESS)
             )
         ).scalar_one()
         sold_count = (
             await self.session.execute(
-                select(func.count(Order.id)).where(Order.status == OrderStatus.SOLD)
+                filtered(select(func.count(Order.id))).where(Order.status == OrderStatus.SOLD)
             )
         ).scalar_one()
 
         totals = (
             await self.session.execute(
-                select(
+                filtered(select(
                     func.coalesce(func.sum(Order.buy_price), 0),
                     func.coalesce(func.sum(Order.sell_price), 0),
                     func.coalesce(func.sum(Order.profit), 0),
                     func.coalesce(func.avg(Order.profit), 0),
-                )
+                ))
             )
         ).one()
 

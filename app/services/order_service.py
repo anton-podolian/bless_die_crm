@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 from typing import Any
 
 from app.models.order import Order, OrderStatus
@@ -28,6 +29,7 @@ class OrderService:
             customer=data.get("customer"),
             comment=data.get("comment"),
             status=OrderStatus.IN_PROGRESS,
+            created_at=datetime.now(UTC),
         )
 
     async def get_order(self, order_id: int) -> Order | None:
@@ -40,7 +42,7 @@ class OrderService:
         return await self.repository.update(
             order,
             status=OrderStatus.SOLD,
-            closed_at=datetime.now(timezone.utc),
+            closed_at=datetime.now(UTC),
         )
 
     async def reopen_order(self, order: Order) -> Order:
@@ -63,6 +65,7 @@ class OrderService:
             customer=order.customer,
             comment=order.comment,
             status=OrderStatus.IN_PROGRESS,
+            created_at=datetime.now(UTC),
         )
 
     async def get_last_order(self) -> Order | None:
@@ -78,3 +81,18 @@ class OrderService:
 
     async def get_stats(self) -> OrderStats:
         return await self.repository.get_stats()
+
+    async def get_month_stats(self, year: int, month: int) -> OrderStats:
+        """Return stats for orders created in a Kyiv calendar month."""
+        if not 1 <= month <= 12:
+            raise ValueError("month must be between 1 and 12")
+        kyiv = ZoneInfo("Europe/Kyiv")
+        start = datetime(year, month, 1, tzinfo=kyiv)
+        end = (
+            datetime(year + 1, 1, 1, tzinfo=kyiv)
+            if month == 12
+            else datetime(year, month + 1, 1, tzinfo=kyiv)
+        )
+        return await self.repository.get_stats_for_period(
+            start=start.astimezone(UTC), end=end.astimezone(UTC)
+        )

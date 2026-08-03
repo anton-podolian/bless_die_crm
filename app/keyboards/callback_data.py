@@ -35,5 +35,10 @@ class SearchNav(CallbackData, prefix="srch"):
     page: int
 
 
+class StatsMonth(CallbackData, prefix="statm"):
+    year: int
+    month: int
+
+
 class SimpleAction(CallbackData, prefix="act"):
     action: str  # cancel | skip | back_main | back_list | noop

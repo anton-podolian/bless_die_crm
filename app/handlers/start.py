@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.keyboards.callback_data import SimpleAction
-from app.keyboards.main_menu import main_menu_kb, settings_kb
+from app.keyboards.callback_data import SimpleAction, StatsMonth
+from app.keyboards.main_menu import main_menu_kb, month_stats_kb, settings_kb, stats_kb
 from app.services.order_service import OrderService
 from app.utils.formatting import order_card_text
 from app.utils.texts import (
@@ -57,7 +60,40 @@ async def cb_stats(callback: CallbackQuery, order_service: OrderService) -> None
     from app.utils.formatting import stats_text
 
     stats = await order_service.get_stats()
-    await callback.message.edit_text(stats_text(stats), reply_markup=settings_kb())
+    await callback.message.edit_text(stats_text(stats), reply_markup=stats_kb())
+    await callback.answer()
+
+
+MONTH_NAMES = (
+    "", "январь", "февраль", "март", "апрель", "май", "июнь",
+    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
+)
+
+
+async def _show_month_stats(
+    callback: CallbackQuery, order_service: OrderService, year: int, month: int
+) -> None:
+    from app.utils.formatting import stats_text
+
+    stats = await order_service.get_month_stats(year, month)
+    period = f"{MONTH_NAMES[month]} {year}"
+    await callback.message.edit_text(
+        stats_text(stats, period=period), reply_markup=month_stats_kb(year, month)
+    )
+
+
+@router.callback_query(F.data == "stats:monthly")
+async def cb_monthly_stats(callback: CallbackQuery, order_service: OrderService) -> None:
+    now = datetime.now(ZoneInfo("Europe/Kyiv"))
+    await _show_month_stats(callback, order_service, now.year, now.month)
+    await callback.answer()
+
+
+@router.callback_query(StatsMonth.filter())
+async def cb_month_stats_nav(
+    callback: CallbackQuery, callback_data: StatsMonth, order_service: OrderService
+) -> None:
+    await _show_month_stats(callback, order_service, callback_data.year, callback_data.month)
     await callback.answer()
 
 

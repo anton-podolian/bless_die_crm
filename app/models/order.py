@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Numeric, String, Text, event, func
+from sqlalchemy import Boolean, DateTime, Enum, Numeric, String, Text, event, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -35,6 +35,7 @@ class Order(Base):
         default=OrderStatus.IN_PROGRESS,
         nullable=False,
     )
+    is_ordered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

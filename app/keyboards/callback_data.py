@@ -2,7 +2,7 @@ from aiogram.filters.callback_data import CallbackData
 
 
 class OrderAction(CallbackData, prefix="ord"):
-    action: str  # view | edit | close | reopen | delete | delete_confirm | delete_cancel | duplicate
+    action: str  # view | edit | close | reopen | toggle_ordered | delete | delete_confirm | delete_cancel | duplicate
     order_id: int
 
 

@@ -68,7 +68,7 @@ async def _finish_edit(message: Message, state: FSMContext, order_service: Order
     await state.clear()
 
     text = f"{ORDER_UPDATED}\n\n{order_card_text(order)}"
-    kb = order_card_kb(order.id, order.status)
+    kb = order_card_kb(order.id, order.status, order.is_ordered)
 
     if order.photo_file_id:
         await message.answer_photo(order.photo_file_id, caption=text, reply_markup=kb)

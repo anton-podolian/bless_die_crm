@@ -43,12 +43,16 @@ def confirm_new_order_kb() -> InlineKeyboardMarkup:
     )
 
 
-def order_card_kb(order_id: int, status: OrderStatus) -> InlineKeyboardMarkup:
+def order_card_kb(order_id: int, status: OrderStatus, is_ordered: bool = False) -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text="✏️ Редактировать", callback_data=OrderAction(action="edit", order_id=order_id).pack())],
     ]
 
     if status == OrderStatus.IN_PROGRESS:
+        ordered_text = "🔵 Заказана" if is_ordered else "🔴 Не заказана"
+        rows.append(
+            [InlineKeyboardButton(text=ordered_text, callback_data=OrderAction(action="toggle_ordered", order_id=order_id).pack())]
+        )
         rows.append(
             [InlineKeyboardButton(text="✅ Закрыть заказ", callback_data=OrderAction(action="close", order_id=order_id).pack())]
         )
@@ -118,6 +122,8 @@ def orders_list_kb(
 
     for order in orders:
         emoji = "🟢" if order.status == OrderStatus.SOLD else "🟡"
+        if order.status == OrderStatus.IN_PROGRESS:
+            emoji += "🔵" if order.is_ordered else "🔴"
         short_title = order.title if len(order.title) <= 24 else f"{order.title[:23]}…"
         rows.append(
             [
@@ -180,6 +186,8 @@ def search_results_kb(orders: list, total: int, page: int, query: str) -> Inline
     rows = []
     for order in orders:
         emoji = "🟢" if order.status == OrderStatus.SOLD else "🟡"
+        if order.status == OrderStatus.IN_PROGRESS:
+            emoji += "🔵" if order.is_ordered else "🔴"
         short_title = order.title if len(order.title) <= 24 else f"{order.title[:23]}…"
         rows.append(
             [

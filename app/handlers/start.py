@@ -108,7 +108,7 @@ async def cb_last_order(callback: CallbackQuery, order_service: OrderService) ->
         return
 
     text = order_card_text(order)
-    kb = order_card_kb(order.id, order.status)
+    kb = order_card_kb(order.id, order.status, order.is_ordered)
 
     if order.photo_file_id:
         await callback.message.delete()

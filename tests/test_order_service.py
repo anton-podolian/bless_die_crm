@@ -65,6 +65,30 @@ def test_reopening_does_not_change_original_order_date():
     asyncio.run(scenario())
 
 
+def test_ordered_marker_can_be_toggled_for_in_progress_order():
+    async def scenario():
+        repository = FakeRepository()
+        order = SimpleNamespace(id=8, status=OrderStatus.IN_PROGRESS, is_ordered=False)
+
+        updated = await OrderService(repository).toggle_ordered(order)
+        assert updated.is_ordered is True
+        updated = await OrderService(repository).toggle_ordered(order)
+        assert updated.is_ordered is False
+
+    asyncio.run(scenario())
+
+
+def test_ordered_marker_cannot_be_changed_after_order_is_sold():
+    async def scenario():
+        repository = FakeRepository()
+        order = SimpleNamespace(id=9, status=OrderStatus.SOLD, is_ordered=True)
+
+        updated = await OrderService(repository).toggle_ordered(order)
+        assert updated.is_ordered is True
+
+    asyncio.run(scenario())
+
+
 def test_month_boundaries_follow_kyiv_timezone_and_dst():
     async def scenario():
         repository = FakeRepository()

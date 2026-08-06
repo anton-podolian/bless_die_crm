@@ -29,6 +29,7 @@ class OrderService:
             customer=data.get("customer"),
             comment=data.get("comment"),
             status=OrderStatus.IN_PROGRESS,
+            is_ordered=False,
             created_at=datetime.now(UTC),
         )
 
@@ -52,6 +53,12 @@ class OrderService:
             closed_at=None,
         )
 
+    async def toggle_ordered(self, order: Order) -> Order:
+        """Toggle whether an in-progress item's purchase has been placed."""
+        if order.status != OrderStatus.IN_PROGRESS:
+            return order
+        return await self.repository.update(order, is_ordered=not order.is_ordered)
+
     async def delete_order(self, order: Order) -> None:
         await self.repository.delete(order)
 
@@ -65,6 +72,7 @@ class OrderService:
             customer=order.customer,
             comment=order.comment,
             status=OrderStatus.IN_PROGRESS,
+            is_ordered=False,
             created_at=datetime.now(UTC),
         )
 

@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery
 
 from app.keyboards.callback_data import OrderAction
 from app.keyboards.order_keyboards import delete_confirm_kb, edit_menu_kb, order_card_kb
+from app.models.order import OrderStatus
 from app.services.order_service import OrderService
 from app.utils.formatting import order_card_text
 from app.utils.texts import (
@@ -40,7 +41,7 @@ async def _delete_message_if_possible(callback: CallbackQuery) -> bool:
 
 async def _render_card(callback: CallbackQuery, order) -> None:
     text = order_card_text(order)
-    kb = order_card_kb(order.id, order.status)
+    kb = order_card_kb(order.id, order.status, order.is_ordered)
 
     has_photo_message = bool(callback.message.photo)
 
@@ -91,6 +92,20 @@ async def reopen_order(callback: CallbackQuery, callback_data: OrderAction, orde
     await callback.answer(ORDER_REOPENED)
 
 
+@router.callback_query(OrderAction.filter(F.action == "toggle_ordered"))
+async def toggle_ordered(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService) -> None:
+    order = await order_service.get_order(callback_data.order_id)
+    if order is None:
+        await callback.answer(ORDER_NOT_FOUND, show_alert=True)
+        return
+    if order.status != OrderStatus.IN_PROGRESS:
+        await callback.answer("Статус заказа уже изменился", show_alert=True)
+        return
+    order = await order_service.toggle_ordered(order)
+    await _render_card(callback, order)
+    await callback.answer("Вещь заказана" if order.is_ordered else "Вещь не заказана")
+
+
 @router.callback_query(OrderAction.filter(F.action == "duplicate"))
 async def duplicate_order(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService) -> None:
     order = await order_service.get_order(callback_data.order_id)
@@ -115,7 +130,7 @@ async def cancel_delete(callback: CallbackQuery, callback_data: OrderAction, ord
     await callback.message.delete()
     if order is not None:
         text = order_card_text(order)
-        kb = order_card_kb(order.id, order.status)
+        kb = order_card_kb(order.id, order.status, order.is_ordered)
         if order.photo_file_id:
             await callback.message.answer_photo(order.photo_file_id, caption=text, reply_markup=kb)
         else:

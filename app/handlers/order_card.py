@@ -6,9 +6,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from app.keyboards.callback_data import OrderAction
+from app.keyboards.common import cancel_kb
 from app.keyboards.order_keyboards import delete_confirm_kb, edit_menu_kb, order_card_kb
 from app.models.order import OrderStatus
 from app.services.order_service import OrderService
+from app.states.order_states import NewOrderStates
 from app.utils.formatting import order_card_text
 from app.utils.texts import (
     DELETE_CONFIRM,
@@ -16,6 +18,7 @@ from app.utils.texts import (
     ORDER_DELETED,
     ORDER_DUPLICATED,
     ORDER_REOPENED,
+    NEW_ORDER_TITLE,
 )
 
 router = Router(name="order_card")
@@ -107,13 +110,33 @@ async def toggle_ordered(callback: CallbackQuery, callback_data: OrderAction, or
 
 
 @router.callback_query(OrderAction.filter(F.action == "duplicate"))
-async def duplicate_order(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService) -> None:
+async def duplicate_order(
+    callback: CallbackQuery,
+    callback_data: OrderAction,
+    order_service: OrderService,
+    state: FSMContext,
+) -> None:
     order = await order_service.get_order(callback_data.order_id)
     if order is None:
         await callback.answer(ORDER_NOT_FOUND, show_alert=True)
         return
-    await order_service.duplicate_order(order)
-    await _render_card(callback, order)
+
+    await state.clear()
+    await state.update_data(
+        photo_file_id=order.photo_file_id,
+        size=order.size,
+        buy_price=order.buy_price,
+        sell_price=order.sell_price,
+        customer=None,
+        is_duplicate=True,
+    )
+    await state.set_state(NewOrderStates.title)
+
+    if callback.message.photo:
+        await callback.message.delete()
+        await callback.message.answer(NEW_ORDER_TITLE, reply_markup=cancel_kb())
+    else:
+        await callback.message.edit_text(NEW_ORDER_TITLE, reply_markup=cancel_kb())
     await callback.answer(ORDER_DUPLICATED)
 
 

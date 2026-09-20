@@ -119,29 +119,40 @@ def test_duplicate_does_not_copy_customer_or_comment():
     asyncio.run(scenario())
 
 
-def test_duplicate_keeps_the_source_order_card_open():
+def test_duplicate_opens_title_input_with_inventory_details_prefilled():
     async def scenario():
-        source_order = SimpleNamespace(id=14)
-        duplicate = SimpleNamespace(id=15)
+        source_order = SimpleNamespace(
+            id=14,
+            photo_file_id=None,
+            size="M",
+            buy_price=100,
+            sell_price=200,
+        )
         order_service = SimpleNamespace(
             get_order=AsyncMock(return_value=source_order),
-            duplicate_order=AsyncMock(return_value=duplicate),
         )
-        callback = SimpleNamespace(answer=AsyncMock())
-        render_card = AsyncMock()
-        original_render_card = order_card._render_card
-        order_card._render_card = render_card
-        try:
-            await order_card.duplicate_order(
-                callback,
-                SimpleNamespace(order_id=source_order.id),
-                order_service,
-            )
-        finally:
-            order_card._render_card = original_render_card
+        callback = SimpleNamespace(
+            answer=AsyncMock(),
+            message=SimpleNamespace(photo=None, edit_text=AsyncMock()),
+        )
+        state = SimpleNamespace(clear=AsyncMock(), update_data=AsyncMock(), set_state=AsyncMock())
 
-        order_service.duplicate_order.assert_awaited_once_with(source_order)
-        render_card.assert_awaited_once_with(callback, source_order)
+        await order_card.duplicate_order(
+            callback,
+            SimpleNamespace(order_id=source_order.id),
+            order_service,
+            state,
+        )
+
+        state.update_data.assert_awaited_once_with(
+            photo_file_id=None,
+            size="M",
+            buy_price=100,
+            sell_price=200,
+            customer=None,
+            is_duplicate=True,
+        )
+        state.set_state.assert_awaited_once_with(order_card.NewOrderStates.title)
 
     asyncio.run(scenario())
 

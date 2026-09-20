@@ -1,8 +1,11 @@
 import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
+from app.handlers import order_card, orders_list
 from app.models.order import OrderStatus
+from app.repositories.order_repository import SortOption, StatusFilter
 from app.services.order_service import OrderService
 from app.utils.formatting import fmt_datetime
 from app.utils.validators import parse_kyiv_datetime
@@ -25,6 +28,10 @@ class FakeRepository:
     async def get_stats_for_period(self, start, end):
         self.period = (start, end)
         return SimpleNamespace(total_count=0)
+
+    async def create(self, **fields):
+        self.created_fields = fields
+        return SimpleNamespace(**fields)
 
 
 def test_closed_order_remains_saved_and_can_be_loaded():
@@ -85,6 +92,98 @@ def test_ordered_marker_cannot_be_changed_after_order_is_sold():
 
         updated = await OrderService(repository).toggle_ordered(order)
         assert updated.is_ordered is True
+
+    asyncio.run(scenario())
+
+
+def test_duplicate_does_not_copy_customer_or_comment():
+    async def scenario():
+        repository = FakeRepository()
+        source = SimpleNamespace(
+            photo_file_id="photo-id",
+            title="Jacket",
+            size="M",
+            buy_price=100,
+            sell_price=200,
+            customer="Іван Петренко",
+            comment="Передзвонити ввечері",
+        )
+
+        duplicate = await OrderService(repository).duplicate_order(source)
+
+        assert duplicate.customer is None
+        assert duplicate.comment is None
+        assert repository.created_fields["customer"] is None
+        assert repository.created_fields["comment"] is None
+
+    asyncio.run(scenario())
+
+
+def test_duplicate_keeps_the_source_order_card_open():
+    async def scenario():
+        source_order = SimpleNamespace(id=14)
+        duplicate = SimpleNamespace(id=15)
+        order_service = SimpleNamespace(
+            get_order=AsyncMock(return_value=source_order),
+            duplicate_order=AsyncMock(return_value=duplicate),
+        )
+        callback = SimpleNamespace(answer=AsyncMock())
+        render_card = AsyncMock()
+        original_render_card = order_card._render_card
+        order_card._render_card = render_card
+        try:
+            await order_card.duplicate_order(
+                callback,
+                SimpleNamespace(order_id=source_order.id),
+                order_service,
+            )
+        finally:
+            order_card._render_card = original_render_card
+
+        order_service.duplicate_order.assert_awaited_once_with(source_order)
+        render_card.assert_awaited_once_with(callback, source_order)
+
+    asyncio.run(scenario())
+
+
+def test_back_to_orders_restores_the_same_list_page_and_filters():
+    async def scenario():
+        callback = SimpleNamespace(
+            message=SimpleNamespace(photo=None),
+            answer=AsyncMock(),
+        )
+        order_service = SimpleNamespace()
+        state = SimpleNamespace(
+            get_data=AsyncMock(
+                return_value={
+                    "list_page": 2,
+                    "list_status": StatusFilter.IN_PROGRESS.value,
+                    "list_sort": SortOption.MOST_PROFIT.value,
+                }
+            ),
+            clear=AsyncMock(),
+            update_data=AsyncMock(),
+        )
+        render_list = AsyncMock()
+        original_render_list = orders_list._render_list
+        orders_list._render_list = render_list
+        try:
+            await orders_list.back_to_orders_list(callback, order_service, state)
+        finally:
+            orders_list._render_list = original_render_list
+
+        render_list.assert_awaited_once_with(
+            callback,
+            order_service,
+            page=2,
+            status=StatusFilter.IN_PROGRESS,
+            sort=SortOption.MOST_PROFIT,
+        )
+        state.update_data.assert_awaited_once_with(
+            list_page=2,
+            list_status=StatusFilter.IN_PROGRESS.value,
+            list_sort=SortOption.MOST_PROFIT.value,
+        )
 
     asyncio.run(scenario())
 

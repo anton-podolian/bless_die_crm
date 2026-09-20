@@ -65,7 +65,7 @@ async def _finish_edit(message: Message, state: FSMContext, order_service: Order
         return
 
     order = await order_service.update_field(order, field, value)
-    await state.clear()
+    await state.set_state(None)
 
     text = f"{ORDER_UPDATED}\n\n{order_card_text(order)}"
     kb = order_card_kb(order.id, order.status, order.is_ordered)

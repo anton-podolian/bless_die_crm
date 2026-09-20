@@ -61,7 +61,7 @@ async def _render_card(callback: CallbackQuery, order) -> None:
 
 @router.callback_query(OrderAction.filter(F.action == "view"))
 async def view_order(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService, state: FSMContext) -> None:
-    await state.clear()
+    await state.set_state(None)
     order = await order_service.get_order(callback_data.order_id)
     if order is None:
         await callback.answer(ORDER_NOT_FOUND, show_alert=True)
@@ -112,8 +112,8 @@ async def duplicate_order(callback: CallbackQuery, callback_data: OrderAction, o
     if order is None:
         await callback.answer(ORDER_NOT_FOUND, show_alert=True)
         return
-    new_order = await order_service.duplicate_order(order)
-    await _render_card(callback, new_order)
+    await order_service.duplicate_order(order)
+    await _render_card(callback, order)
     await callback.answer(ORDER_DUPLICATED)
 
 

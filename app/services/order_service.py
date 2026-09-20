@@ -63,14 +63,15 @@ class OrderService:
         await self.repository.delete(order)
 
     async def duplicate_order(self, order: Order) -> Order:
+        """Create an inventory copy"""
         return await self.repository.create(
             photo_file_id=order.photo_file_id,
             title=order.title,
             size=order.size,
             buy_price=order.buy_price,
             sell_price=order.sell_price,
-            customer=order.customer,
-            comment=order.comment,
+            customer=None,
+            comment=None,
             status=OrderStatus.IN_PROGRESS,
             is_ordered=False,
             created_at=datetime.now(UTC),

@@ -119,11 +119,12 @@ def test_duplicate_does_not_copy_customer_or_comment():
     asyncio.run(scenario())
 
 
-def test_duplicate_opens_title_input_with_inventory_details_prefilled():
+def test_duplicate_keeps_title_and_opens_customer_input():
     async def scenario():
         source_order = SimpleNamespace(
             id=14,
             photo_file_id=None,
+            title="Jacket",
             size="M",
             buy_price=100,
             sell_price=200,
@@ -146,13 +147,13 @@ def test_duplicate_opens_title_input_with_inventory_details_prefilled():
 
         state.update_data.assert_awaited_once_with(
             photo_file_id=None,
+            title="Jacket",
             size="M",
             buy_price=100,
             sell_price=200,
             customer=None,
-            is_duplicate=True,
         )
-        state.set_state.assert_awaited_once_with(order_card.NewOrderStates.title)
+        state.set_state.assert_awaited_once_with(order_card.NewOrderStates.customer)
 
     asyncio.run(scenario())
 

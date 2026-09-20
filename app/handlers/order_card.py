@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from app.keyboards.callback_data import OrderAction
-from app.keyboards.common import cancel_kb
+from app.keyboards.common import skip_or_cancel_kb
 from app.keyboards.order_keyboards import delete_confirm_kb, edit_menu_kb, order_card_kb
 from app.models.order import OrderStatus
 from app.services.order_service import OrderService
@@ -18,7 +18,7 @@ from app.utils.texts import (
     ORDER_DELETED,
     ORDER_DUPLICATED,
     ORDER_REOPENED,
-    NEW_ORDER_TITLE,
+    NEW_ORDER_CUSTOMER,
 )
 
 router = Router(name="order_card")
@@ -124,19 +124,19 @@ async def duplicate_order(
     await state.clear()
     await state.update_data(
         photo_file_id=order.photo_file_id,
+        title=order.title,
         size=order.size,
         buy_price=order.buy_price,
         sell_price=order.sell_price,
         customer=None,
-        is_duplicate=True,
     )
-    await state.set_state(NewOrderStates.title)
+    await state.set_state(NewOrderStates.customer)
 
     if callback.message.photo:
         await callback.message.delete()
-        await callback.message.answer(NEW_ORDER_TITLE, reply_markup=cancel_kb())
+        await callback.message.answer(NEW_ORDER_CUSTOMER, reply_markup=skip_or_cancel_kb())
     else:
-        await callback.message.edit_text(NEW_ORDER_TITLE, reply_markup=cancel_kb())
+        await callback.message.edit_text(NEW_ORDER_CUSTOMER, reply_markup=skip_or_cancel_kb())
     await callback.answer(ORDER_DUPLICATED)
 
 

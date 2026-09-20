@@ -66,11 +66,6 @@ async def title_received(message: Message, state: FSMContext) -> None:
         await message.answer(EMPTY_TITLE, reply_markup=cancel_kb())
         return
     await state.update_data(title=message.text.strip())
-    data = await state.get_data()
-    if data.get("is_duplicate"):
-        await _go_to_comment(message, state)
-        return
-
     await state.set_state(NewOrderStates.size)
     await message.answer(NEW_ORDER_SIZE, reply_markup=size_select_kb())
 

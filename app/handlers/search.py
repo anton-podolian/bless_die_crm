@@ -34,7 +34,11 @@ async def _render_results(message_or_callback, order_service: OrderService, quer
     kb = search_results_kb(orders, total, page, query)
 
     if isinstance(message_or_callback, CallbackQuery):
-        await message_or_callback.message.edit_text(text, reply_markup=kb)
+        if message_or_callback.message.photo:
+            await message_or_callback.message.delete()
+            await message_or_callback.message.answer(text, reply_markup=kb)
+        else:
+            await message_or_callback.message.edit_text(text, reply_markup=kb)
         await message_or_callback.answer()
     else:
         await message_or_callback.answer(text, reply_markup=kb)

@@ -42,9 +42,9 @@ async def _delete_message_if_possible(callback: CallbackQuery) -> bool:
         return False
 
 
-async def _render_card(callback: CallbackQuery, order) -> None:
+async def _render_card(callback: CallbackQuery, order, back_action: str = "back_list") -> None:
     text = order_card_text(order)
-    kb = order_card_kb(order.id, order.status, order.is_ordered)
+    kb = order_card_kb(order.id, order.status, order.is_ordered, back_action)
 
     has_photo_message = bool(callback.message.photo)
 
@@ -64,12 +64,14 @@ async def _render_card(callback: CallbackQuery, order) -> None:
 
 @router.callback_query(OrderAction.filter(F.action == "view"))
 async def view_order(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService, state: FSMContext) -> None:
+    data = await state.get_data()
+    back_action = "back_search" if data.get("query") is not None else "back_list"
     await state.set_state(None)
     order = await order_service.get_order(callback_data.order_id)
     if order is None:
         await callback.answer(ORDER_NOT_FOUND, show_alert=True)
         return
-    await _render_card(callback, order)
+    await _render_card(callback, order, back_action)
     await callback.answer()
 
 

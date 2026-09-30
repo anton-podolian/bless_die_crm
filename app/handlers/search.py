@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.keyboards.callback_data import SearchNav
+from app.keyboards.callback_data import SearchNav, SimpleAction
 from app.keyboards.common import cancel_kb
 from app.keyboards.order_keyboards import search_results_kb
 from app.services.order_service import OrderService
@@ -24,7 +24,7 @@ async def start_search(callback: CallbackQuery, state: FSMContext) -> None:
 
 async def _render_results(message_or_callback, order_service: OrderService, query: str, page: int, state: FSMContext) -> None:
     orders, total = await order_service.search_orders(query=query, page=page)
-    await state.update_data(query=query)
+    await state.update_data(query=query, search_page=page)
 
     if total == 0:
         text = SEARCH_NOTHING_FOUND
@@ -55,3 +55,13 @@ async def search_page_navigation(callback: CallbackQuery, callback_data: SearchN
     data = await state.get_data()
     query = data.get("query", "")
     await _render_results(callback, order_service, query, callback_data.page, state)
+
+
+@router.callback_query(SimpleAction.filter(F.action == "back_search"))
+async def back_to_search_results(callback: CallbackQuery, order_service: OrderService, state: FSMContext) -> None:
+    data = await state.get_data()
+    query = data.get("query")
+    if not query:
+        await callback.answer("Поиск больше недоступен", show_alert=True)
+        return
+    await _render_results(callback, order_service, query, data.get("search_page", 0), state)

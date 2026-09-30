@@ -43,7 +43,7 @@ def confirm_new_order_kb() -> InlineKeyboardMarkup:
     )
 
 
-def order_card_kb(order_id: int, status: OrderStatus, is_ordered: bool = False) -> InlineKeyboardMarkup:
+def order_card_kb(order_id: int, status: OrderStatus, is_ordered: bool = False, back_action: str = "back_list") -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text="✏️ Редактировать", callback_data=OrderAction(action="edit", order_id=order_id).pack())],
     ]
@@ -68,7 +68,7 @@ def order_card_kb(order_id: int, status: OrderStatus, is_ordered: bool = False) 
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=OrderAction(action="delete", order_id=order_id).pack())]
     )
     rows.append(
-        [InlineKeyboardButton(text="⬅️ Назад", callback_data=SimpleAction(action="back_list").pack())]
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data=SimpleAction(action=back_action).pack())]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

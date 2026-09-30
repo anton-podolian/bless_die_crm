@@ -73,6 +73,19 @@ def order_card_kb(order_id: int, status: OrderStatus, is_ordered: bool = False, 
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def search_order_card_kb(order_id: int, status: OrderStatus, is_ordered: bool, query: str, page: int) -> InlineKeyboardMarkup:
+    from app.keyboards.callback_data import SearchBack
+    from urllib.parse import quote
+
+    kb = order_card_kb(order_id, status, is_ordered, back_action="back_search")
+    try:
+        callback_data = SearchBack(page=page, query=quote(query, safe="")).pack()
+    except ValueError:
+        return kb
+    kb.inline_keyboard[-1][0].callback_data = callback_data
+    return kb
+
+
 def delete_confirm_kb(order_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -180,6 +193,17 @@ def orders_list_kb(
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def _search_order_callback(order_id: int, query: str, page: int) -> str:
+    from app.keyboards.callback_data import SearchOrderView
+    from urllib.parse import quote
+
+    try:
+        return SearchOrderView(order_id=order_id, query=quote(query, safe=""), page=page).pack()
+    except ValueError:
+        pass
+    return OrderAction(action="view", order_id=order_id).pack()
+
+
 def search_results_kb(orders: list, total: int, page: int, query: str) -> InlineKeyboardMarkup:
     from app.keyboards.callback_data import SearchNav
 
@@ -193,7 +217,7 @@ def search_results_kb(orders: list, total: int, page: int, query: str) -> Inline
             [
                 InlineKeyboardButton(
                     text=f"{emoji} #{order.id} {short_title} · {fmt_datetime(order.created_at)}",
-                    callback_data=OrderAction(action="view", order_id=order.id).pack(),
+                    callback_data=_search_order_callback(order.id, query, page),
                 )
             ]
         )

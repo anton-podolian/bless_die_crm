@@ -4,10 +4,11 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
+from urllib.parse import unquote
 
-from app.keyboards.callback_data import OrderAction
+from app.keyboards.callback_data import OrderAction, SearchOrderView
 from app.keyboards.common import skip_or_cancel_kb
-from app.keyboards.order_keyboards import delete_confirm_kb, edit_menu_kb, order_card_kb
+from app.keyboards.order_keyboards import delete_confirm_kb, edit_menu_kb, order_card_kb, search_order_card_kb
 from app.models.order import OrderStatus
 from app.services.order_service import OrderService
 from app.states.order_states import NewOrderStates
@@ -42,9 +43,12 @@ async def _delete_message_if_possible(callback: CallbackQuery) -> bool:
         return False
 
 
-async def _render_card(callback: CallbackQuery, order, back_action: str = "back_list") -> None:
+async def _render_card(callback: CallbackQuery, order, back_action: str = "back_list", query: str | None = None, page: int = 0) -> None:
     text = order_card_text(order)
-    kb = order_card_kb(order.id, order.status, order.is_ordered, back_action)
+    if back_action == "back_search" and query is not None:
+        kb = search_order_card_kb(order.id, order.status, order.is_ordered, query, page)
+    else:
+        kb = order_card_kb(order.id, order.status, order.is_ordered, back_action)
 
     has_photo_message = bool(callback.message.photo)
 
@@ -62,17 +66,28 @@ async def _render_card(callback: CallbackQuery, order, back_action: str = "back_
             await callback.message.edit_text(text, reply_markup=kb)
 
 
-@router.callback_query(OrderAction.filter(F.action == "view"))
-async def view_order(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService, state: FSMContext) -> None:
+async def _show_order(callback: CallbackQuery, order_id: int, order_service: OrderService, state: FSMContext, query: str | None = None, page: int | None = None) -> None:
     data = await state.get_data()
-    back_action = "back_search" if data.get("query") is not None else "back_list"
+    query = query or data.get("query")
+    page = page if page is not None else data.get("search_page", 0)
+    back_action = "back_search" if query else "back_list"
     await state.set_state(None)
-    order = await order_service.get_order(callback_data.order_id)
+    order = await order_service.get_order(order_id)
     if order is None:
         await callback.answer(ORDER_NOT_FOUND, show_alert=True)
         return
-    await _render_card(callback, order, back_action)
+    await _render_card(callback, order, back_action, query, page)
     await callback.answer()
+
+
+@router.callback_query(OrderAction.filter(F.action == "view"))
+async def view_order(callback: CallbackQuery, callback_data: OrderAction, order_service: OrderService, state: FSMContext) -> None:
+    await _show_order(callback, callback_data.order_id, order_service, state)
+
+
+@router.callback_query(SearchOrderView.filter())
+async def view_order_from_search(callback: CallbackQuery, callback_data: SearchOrderView, order_service: OrderService, state: FSMContext) -> None:
+    await _show_order(callback, callback_data.order_id, order_service, state, unquote(callback_data.query), callback_data.page)
 
 
 @router.callback_query(OrderAction.filter(F.action == "close"))

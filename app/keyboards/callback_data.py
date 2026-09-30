@@ -6,6 +6,12 @@ class OrderAction(CallbackData, prefix="ord"):
     order_id: int
 
 
+class SearchOrderView(CallbackData, prefix="sord"):
+    order_id: int
+    query: str
+    page: int
+
+
 class EditField(CallbackData, prefix="edf"):
     order_id: int
     field: str  # photo | title | size | buy_price | sell_price | customer | comment
@@ -33,6 +39,11 @@ class ListSortSelect(CallbackData, prefix="lstsrt"):
 
 class SearchNav(CallbackData, prefix="srch"):
     page: int
+
+
+class SearchBack(CallbackData, prefix="sback"):
+    page: int
+    query: str
 
 
 class StatsMonth(CallbackData, prefix="statm"):

@@ -3,8 +3,9 @@ from __future__ import annotations
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from urllib.parse import unquote
 
-from app.keyboards.callback_data import SearchNav, SimpleAction
+from app.keyboards.callback_data import SearchBack, SearchNav, SimpleAction
 from app.keyboards.common import cancel_kb
 from app.keyboards.order_keyboards import search_results_kb
 from app.services.order_service import OrderService
@@ -69,3 +70,13 @@ async def back_to_search_results(callback: CallbackQuery, order_service: OrderSe
         await callback.answer("Поиск больше недоступен", show_alert=True)
         return
     await _render_results(callback, order_service, query, data.get("search_page", 0), state)
+
+
+@router.callback_query(SearchBack.filter())
+async def back_to_search_results_from_payload(
+    callback: CallbackQuery, callback_data: SearchBack, order_service: OrderService, state: FSMContext
+) -> None:
+    if not callback_data.query:
+        await callback.answer("Поиск больше недоступен", show_alert=True)
+        return
+    await _render_results(callback, order_service, unquote(callback_data.query), callback_data.page, state)
